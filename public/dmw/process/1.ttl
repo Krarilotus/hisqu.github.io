@@ -1,0 +1,248 @@
+# The DMW process vocabulary, dmw-process@1 (process-governance.md PG-1, ADR-0021).
+#
+# The single source of truth of the meta-model of DMW's process items. It changes in the
+# same commit as the item formats the server parses; `vocabulary.py` reads it and a test
+# ties it to the exporter in both directions. The namespace is fixed and global, like
+# prov:, never under an installation's IRI base.
+#
+# Each DMW class and property is declared once. `dmwp:abstract true` marks a term the
+# exporter never writes itself (a superclass or superproperty); `dmwp:reservedFor` marks a
+# term whose item format is not built yet, with the work package that builds it.
+# The SHACL shapes at the end state the cardinalities. They test the exporter (a graph built
+# from valid items always conforms) and never run as a second validation of definitions.
+
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dmwp: <https://w3id.org/hisqu/dmw/process#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix p-plan: <http://purl.org/net/p-plan#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix wfdesc: <http://purl.org/wf4ever/wfdesc#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/hisqu/dmw/process> a owl:Ontology ;
+    owl:versionIRI <https://w3id.org/hisqu/dmw/process/1> ;
+    owl:versionInfo "dmw-process@1" ;
+    rdfs:label "DMW process vocabulary" ;
+    rdfs:comment "The kinds of DMW process items and their relations, aligned with PROV-O, P-Plan, wfdesc and schema.org." .
+
+dmwp:abstract a owl:AnnotationProperty ;
+    rdfs:comment "The exporter never writes this term itself." ;
+    dmwp:abstract true .
+
+dmwp:reservedFor a owl:AnnotationProperty ;
+    rdfs:comment "The work package that builds the item format this term describes." ;
+    dmwp:abstract true .
+
+# ---------------------------------------------------------------- items and versions
+
+dmwp:Item a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:comment "An item across its versions. Its lifecycle, module and curators are those at the content version." .
+
+dmwp:ItemVersion a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:comment "One version of a process item at a content version." .
+
+dmwp:versionOf a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:isVersionOf ;
+    rdfs:domain dmwp:ItemVersion ;
+    rdfs:range dmwp:Item .
+
+dmwp:Workflow a owl:Class ;
+    rdfs:subClassOf dmwp:ItemVersion , p-plan:Plan , wfdesc:Workflow .
+
+dmwp:Step a owl:Class ;
+    rdfs:subClassOf dmwp:ItemVersion , prov:Plan ;
+    dmwp:abstract true .
+
+dmwp:AgentStep a owl:Class ; rdfs:subClassOf dmwp:Step .
+dmwp:HumanStep a owl:Class ; rdfs:subClassOf dmwp:Step .
+dmwp:ToolStep a owl:Class ; rdfs:subClassOf dmwp:Step .
+
+dmwp:StepUse a owl:Class ;
+    rdfs:subClassOf p-plan:Step , wfdesc:Process ;
+    rdfs:comment "One keyed step or sub-workflow of one Workflow version." .
+
+dmwp:Prompt a owl:Class ; rdfs:subClassOf dmwp:ItemVersion , schema:CreativeWork .
+dmwp:Skill a owl:Class ; rdfs:subClassOf dmwp:ItemVersion , schema:CreativeWork .
+dmwp:Artifact a owl:Class ; rdfs:subClassOf dmwp:ItemVersion , schema:CreativeWork .
+dmwp:LabelList a owl:Class ; rdfs:subClassOf dmwp:ItemVersion , schema:CreativeWork .
+
+dmwp:Tool a owl:Class ;
+    rdfs:subClassOf dmwp:ItemVersion , schema:SoftwareSourceCode , wfdesc:ProcessImplementation .
+
+dmwp:Cookbook a owl:Class ;
+    rdfs:subClassOf dmwp:ItemVersion , prov:Collection ;
+    dmwp:reservedFor "SK-3" .
+
+dmwp:Bindings a owl:Class ;
+    rdfs:subClassOf dmwp:ItemVersion ;
+    dmwp:reservedFor "GW-5" .
+
+dmwp:Role a owl:Class ;
+    rdfs:subClassOf prov:Role ;
+    dmwp:reservedFor "GW-5" .
+
+dmwp:Binding a owl:Class ;
+    rdfs:comment "How one placeholder or tool input is filled by a selector." .
+
+dmwp:Port a owl:Class ;
+    rdfs:subClassOf p-plan:Variable ;
+    rdfs:comment "An input slot, an output part or an export." .
+
+# Item kinds a step can propose, and data items steps bind.
+dmwp:OntologyModule a owl:Class ; rdfs:subClassOf prov:Entity .
+dmwp:ShapesGraph a owl:Class ; rdfs:subClassOf prov:Entity .
+dmwp:CompetencyQuestion a owl:Class ; rdfs:subClassOf prov:Entity .
+dmwp:FewShotExample a owl:Class ; rdfs:subClassOf prov:Entity .
+dmwp:CapabilityOverrides a owl:Class ; rdfs:subClassOf prov:Entity .
+dmwp:CorpusImport a owl:Class ; rdfs:subClassOf prov:Entity .
+
+# ---------------------------------------------------------------- modules
+
+dmwp:Module a owl:Class ; dmwp:abstract true .
+dmwp:Project a owl:Class ; rdfs:subClassOf dmwp:Module .
+dmwp:Library a owl:Class ; rdfs:subClassOf dmwp:Module ; dmwp:reservedFor "GW-7" .
+
+dmwp:inModule a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain dmwp:Item ;
+    rdfs:range dmwp:Module .
+
+dmwp:dependsOn a owl:ObjectProperty ;
+    rdfs:domain dmwp:Project ;
+    dmwp:reservedFor "GW-7" .
+
+# ---------------------------------------------------------------- pins
+
+dmwp:pins a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:requires ;
+    rdfs:comment "An exact pin of one item version by another." ;
+    dmwp:abstract true .
+
+dmwp:runs a owl:ObjectProperty ;
+    rdfs:subPropertyOf dmwp:pins ;
+    rdfs:comment "The step or sub-workflow version a step use runs." .
+
+dmwp:usesPrompt a owl:ObjectProperty ; rdfs:subPropertyOf dmwp:pins .
+dmwp:usesTool a owl:ObjectProperty ; rdfs:subPropertyOf dmwp:pins .
+dmwp:usesSkill a owl:ObjectProperty ; rdfs:subPropertyOf dmwp:pins .
+dmwp:usesCookbook a owl:ObjectProperty ; rdfs:subPropertyOf dmwp:pins ; dmwp:reservedFor "SK-3" .
+
+# ---------------------------------------------------------------- bindings, ports, proposals
+
+dmwp:binds a owl:ObjectProperty ;
+    rdfs:range dmwp:Binding .
+
+dmwp:bindsItem a owl:ObjectProperty ;
+    rdfs:domain dmwp:Binding ;
+    rdfs:comment "The item a selector reads: an item (floating) or an item version (pinned)." .
+
+dmwp:bindsRole a owl:ObjectProperty ;
+    rdfs:domain dmwp:Binding ;
+    rdfs:range dmwp:Role ;
+    dmwp:reservedFor "GW-5" .
+
+dmwp:selectorKind a owl:DatatypeProperty ; rdfs:domain dmwp:Binding ; rdfs:range xsd:string .
+dmwp:selectorVersion a owl:DatatypeProperty ; rdfs:domain dmwp:Binding ; rdfs:range xsd:integer .
+
+dmwp:exports a owl:ObjectProperty ;
+    rdfs:subPropertyOf wfdesc:hasOutput ;
+    rdfs:domain dmwp:Workflow ;
+    rdfs:range dmwp:Port .
+
+dmwp:proposes a owl:ObjectProperty ;
+    rdfs:domain dmwp:Step ;
+    rdfs:comment "An item kind (a class) the step may propose." .
+
+dmwp:proposesOutput a owl:DatatypeProperty ;
+    rdfs:domain dmwp:ToolStep ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The name of the tool output a tool step proposes." .
+
+dmwp:key a owl:DatatypeProperty ; rdfs:range xsd:string ;
+    rdfs:comment "A step use's key or a port's name." .
+
+dmwp:valueKind a owl:DatatypeProperty ; rdfs:domain dmwp:Port ; rdfs:range xsd:string .
+dmwp:required a owl:DatatypeProperty ; rdfs:domain dmwp:Port ; rdfs:range xsd:boolean .
+
+# ---------------------------------------------------------------- recorded values
+
+dmwp:runtime a owl:DatatypeProperty ; rdfs:domain dmwp:Tool ; rdfs:range xsd:string .
+dmwp:modelUse a owl:DatatypeProperty ; rdfs:domain dmwp:Tool ; rdfs:range xsd:string .
+
+dmwp:contentDigest a owl:DatatypeProperty ;
+    rdfs:domain dmwp:ItemVersion ;
+    rdfs:range xsd:string ;
+    rdfs:comment "SHA-256 of the canonical content without ID, name and lifecycle, for exact copies." .
+
+dmwp:mentionsIri a owl:ObjectProperty ; dmwp:reservedFor "PS-4" .
+
+dmwp:curatedBy a owl:ObjectProperty ;
+    rdfs:domain dmwp:Item ;
+    rdfs:range prov:Agent ;
+    rdfs:comment "A curator of the item's kind in its module, as a user IRI." .
+
+dmwp:touchedIn a owl:ObjectProperty ;
+    rdfs:domain dmwp:ItemVersion ;
+    rdfs:comment "The content version (a change set's head) at which this version is a touched item: the change context." .
+
+# ---------------------------------------------------------------- lifecycle (PG-6)
+
+dmwp:LifecycleState a owl:Class .
+dmwp:Draft a dmwp:LifecycleState .
+dmwp:Active a dmwp:LifecycleState .
+dmwp:Deprecated a dmwp:LifecycleState .
+dmwp:Retired a dmwp:LifecycleState .
+
+dmwp:lifecycle a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain dmwp:Item ;
+    rdfs:range dmwp:LifecycleState ;
+    rdfs:comment "The item's state at the content version; deprecated and retired are mirrored as owl:deprecated true." .
+
+dmwp:lifecycleReason a owl:DatatypeProperty ; rdfs:domain dmwp:Item ; rdfs:range xsd:string .
+
+dmwp:noReplacement a owl:DatatypeProperty ;
+    rdfs:domain dmwp:Item ;
+    rdfs:range xsd:boolean ;
+    rdfs:comment "A deprecated item says explicitly that nothing replaces it." .
+
+# ---------------------------------------------------------------- cardinalities
+
+dmwp:ItemCardinality a sh:NodeShape ;
+    sh:targetClass dmwp:Item ;
+    sh:property [ sh:path dmwp:inModule ; sh:minCount 1 ; sh:maxCount 1 ; sh:class dmwp:Module ] ,
+        [ sh:path dmwp:lifecycle ; sh:minCount 1 ; sh:maxCount 1 ; sh:class dmwp:LifecycleState ] ,
+        [ sh:path [ sh:inversePath dmwp:versionOf ] ; sh:minCount 1 ] .
+
+dmwp:ItemVersionCardinality a sh:NodeShape ;
+    sh:targetClass dmwp:ItemVersion ;
+    sh:property [ sh:path dmwp:versionOf ; sh:minCount 1 ; sh:maxCount 1 ; sh:class dmwp:Item ] ,
+        [ sh:path schema:name ; sh:minCount 1 ; sh:maxCount 1 ] ,
+        [ sh:path dmwp:contentDigest ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+dmwp:StepUseCardinality a sh:NodeShape ;
+    sh:targetClass dmwp:StepUse ;
+    sh:property [ sh:path dmwp:runs ; sh:minCount 1 ; sh:maxCount 1 ] ,
+        [ sh:path p-plan:isStepOfPlan ; sh:minCount 1 ; sh:maxCount 1 ; sh:class dmwp:Workflow ] ,
+        [ sh:path dmwp:key ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+dmwp:AgentStepCardinality a sh:NodeShape ;
+    sh:targetClass dmwp:AgentStep ;
+    sh:property [ sh:path dmwp:usesPrompt ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+dmwp:ToolStepCardinality a sh:NodeShape ;
+    sh:targetClass dmwp:ToolStep ;
+    sh:property [ sh:path dmwp:usesTool ; sh:maxCount 1 ] .
+
+dmwp:BindingCardinality a sh:NodeShape ;
+    sh:targetClass dmwp:Binding ;
+    sh:property [ sh:path dmwp:selectorKind ; sh:minCount 1 ; sh:maxCount 1 ] ,
+        [ sh:path dmwp:selectorVersion ; sh:minCount 1 ; sh:maxCount 1 ] ,
+        [ sh:path dmwp:key ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+dmwp:PortCardinality a sh:NodeShape ;
+    sh:targetClass dmwp:Port ;
+    sh:property [ sh:path dmwp:key ; sh:minCount 1 ; sh:maxCount 1 ] .
