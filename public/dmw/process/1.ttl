@@ -100,6 +100,9 @@ dmwp:CompetencyQuestion a owl:Class ; rdfs:subClassOf prov:Entity .
 dmwp:FewShotExample a owl:Class ; rdfs:subClassOf prov:Entity .
 dmwp:CapabilityOverrides a owl:Class ; rdfs:subClassOf prov:Entity .
 dmwp:CorpusImport a owl:Class ; rdfs:subClassOf prov:Entity .
+dmwp:ExtractionResult a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:comment "Annotations a step hands to knowledge data, where a curator accepts them." .
 
 # ---------------------------------------------------------------- modules
 
@@ -191,16 +194,19 @@ dmwp:touchedIn a owl:ObjectProperty ;
 
 # ---------------------------------------------------------------- lifecycle (PG-6)
 
-dmwp:LifecycleState a owl:Class .
+dmwp:LifecycleState a owl:Class ; dmwp:abstract true .
 dmwp:Draft a dmwp:LifecycleState .
 dmwp:Active a dmwp:LifecycleState .
 dmwp:Deprecated a dmwp:LifecycleState .
-dmwp:Retired a dmwp:LifecycleState .
+dmwp:Retired a dmwp:LifecycleState ;
+    rdfs:comment "Housekeeping: no new work starts with it; running work finishes." .
+dmwp:Withdrawn a dmwp:LifecycleState ;
+    rdfs:comment "A bad apple: nothing runs it any more; its results are listed for re-review." .
 
 dmwp:lifecycle a owl:ObjectProperty , owl:FunctionalProperty ;
     rdfs:domain dmwp:Item ;
     rdfs:range dmwp:LifecycleState ;
-    rdfs:comment "The item's state at the content version; deprecated and retired are mirrored as owl:deprecated true." .
+    rdfs:comment "The item's state at the content version; deprecated, retired and withdrawn are mirrored as owl:deprecated true." .
 
 dmwp:lifecycleReason a owl:DatatypeProperty ; rdfs:domain dmwp:Item ; rdfs:range xsd:string .
 
